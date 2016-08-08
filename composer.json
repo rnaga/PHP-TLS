@@ -9,7 +9,7 @@
         {
             "name": "Ryohei Nagatsuka",
             "role": "Author"
-        },
+        }],
     "autoload": {
 
         "psr-4": {

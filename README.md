@@ -31,7 +31,7 @@ $tls->encode($data);
 $in = $tls->input();
 
 // Convert plaintext into TLS format
-$out = $tls->output("Hello World)->decode();
+$out = $tls->output("Hello World")->decode();
 
 // Send the output to a client
 stream_socket_sendto($clientSocket, $out);

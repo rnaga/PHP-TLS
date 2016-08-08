@@ -1,0 +1,25 @@
+{
+    "name": "rnaga/php-tls",
+    "description": "PHP TLS library",
+    "type": "library",
+    "homepage": "https://github.com/rnaga/phptls",
+    "keywords": ["tls", "tlsv1.1", "tlsv1.2", "non-blocking"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Ryohei Nagatsuka",
+            "role": "Author"
+        }
+    "autoload": {
+
+        "psr-4": {
+           "PTLS\\": "src/"
+        }
+    },
+
+    "require": {
+        "php": ">=7.0.0",
+        "ext-gmp": "*",
+        "mdanter/ecc" : "*"
+    }
+}

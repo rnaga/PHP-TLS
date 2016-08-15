@@ -20,6 +20,7 @@
     "require": {
         "php": ">=7.0.0",
         "ext-gmp": "*",
-        "mdanter/ecc" : "*"
+        "mdanter/ecc" : "*",
+        "spomky-labs/php-aes-gcm": "*"
     }
 }

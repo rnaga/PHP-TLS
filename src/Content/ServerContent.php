@@ -32,15 +32,18 @@ class ServerContent extends ContentAbstract
         // Extension
         $extensions = $core->extensions;
 
-        if( $core->isHandshaked )
-            throw new TLSAlertException(Alert::create(Alert::UNEXPECTED_MESSAGE),
-                "Handshake message received after handshake is complete");
         /*
          * https://tools.ietf.org/html/rfc5246#section-7.4
          *
          * Get Handshake Msg type
          */
         $handshakeType = Core::_unpack('C', $payload[0] );
+
+        if( $core->isHandshaked )
+        {
+            throw new TLSAlertException(Alert::create(Alert::UNEXPECTED_MESSAGE),
+                "Handshake message received after handshake is complete: $handshakeType");
+        }
 
         if( $this->expectedHandshakeType != $handshakeType )
             throw new TLSAlertException(Alert::create(Alert::UNEXPECTED_MESSAGE), "Unexpected handshake message");
@@ -50,9 +53,6 @@ class ServerContent extends ContentAbstract
         $handshake->encode($payload);
 
         $this->content = $handshake;
-
-        // Count handshake for later to create finished message
-        //$core->countHandshakeMessages($payload);
 
         // Set the response into bufferOut if any
         switch($this->expectedHandshakeType)
@@ -118,7 +118,7 @@ class ServerContent extends ContentAbstract
                 $bufferOut->append( $this->decodeContent(  $serverFinished->decode(), ContentType::HANDSHAKE) );    
 
                 $core->isHandshaked = true;
-    
+
                 break;
         }
 

@@ -25,7 +25,9 @@ class Config
 
     private function encodeClientConfig(array $arrConfig)
     {
-
+        // Setting up TLS version
+        if( isset( $arrConfig['version'] ) )
+            $this->config['version'] = $arrConfig['version'];
     }
 
     private function encodeServerConfig(array $arrConfig)

@@ -3,6 +3,7 @@
 namespace PTLS;
 
 use PTLS\Record\BlockCipherRecord;
+use PTLS\Record\AEADCipherRecord;
 use PTLS\Record\Record;
 use PTLS\Exceptions\TLSException;
 use PTLS\Exceptions\TLSAlertException;
@@ -35,7 +36,13 @@ class ConnectionDuplex
      */
     public function cipherChanged()
     {
-        $this->cipherRecord = new BlockCipherRecord($this);
+        $core = $this->core;
+
+        if( $core->cipherSuite->getCipherType() == CipherSuites::CIPHER_TYPE_AEAD )
+            $this->cipherRecord = new AEADCipherRecord($this);
+        else  
+            $this->cipherRecord = new BlockCipherRecord($this);
+
         $this->isCipherChanged = true;
         return $this->cipherRecord;
     }

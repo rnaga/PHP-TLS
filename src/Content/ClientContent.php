@@ -14,9 +14,6 @@ class ClientContent extends ContentAbstract
     {
         parent::__construct($core);
 
-        // Set TLS Version
-        $core->setVersion(3, 3);
-
         $recordOut = $core->getOutDuplex()->getRecord();
         $bufferOut = $core->getBufferOut();
 
@@ -67,9 +64,6 @@ class ClientContent extends ContentAbstract
 
         $this->content = $handshake;
 
-        // Count handshake for later to create finished message
-        //$core->countHandshakeMessages($payload);
-
         switch($this->expectedHandshakeType)
         {
             case HandshakeType::SERVER_HELLO:
@@ -82,7 +76,6 @@ class ClientContent extends ContentAbstract
                     $this->expectedHandshakeType = HandshakeType::SERVER_KEY_EXCHANGE;
                 else
                     $this->expectedHandshakeType = HandshakeType::SERVER_HELLO_DONE;
-
                 break;
 
             case HandshakeType::SERVER_KEY_EXCHANGE:
@@ -96,7 +89,7 @@ class ClientContent extends ContentAbstract
                 // =========================================== 
                 $clientKeyExchange = HandshakeFactory::getInstance($core, HandshakeType::CLIENT_KEY_EXCHANGE);
                 $bufferOut->set( $this->decodeContent($clientKeyExchange->decode(), ContentType::HANDSHAKE) );
-    
+
                 // ===========================================
                 // Send Change Cipher Spec
                 // ===========================================

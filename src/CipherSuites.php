@@ -8,6 +8,10 @@ use PTLS\Content\Alert;
 
 class CipherSuites
 {
+    const TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 = 0xC02F;
+    const TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 = 0xC030;
+    const TLS_RSA_WITH_AES_128_GCM_SHA256    = 0x009C;
+    const TLS_RSA_WITH_AES_256_GCM_SHA384    = 0x009D;
     const TLS_RSA_WITH_AES_128_CBC_SHA       = 0x002F;
     const TLS_RSA_WITH_AES_256_CBC_SHA       = 0x0035;
     const TLS_RSA_WITH_AES_128_CBC_SHA256    = 0x003C;
@@ -16,6 +20,18 @@ class CipherSuites
     const TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA = 0xC014;    
 
     private static $cipherList = [
+        self::TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 =>
+        ['cipher_type' => self::CIPHER_TYPE_AEAD, 'crypto_method' => 'AES-128-GCM', 'mac_len' => 0, 'iv_len' => 4, 'key_len' => 16, 'mac' => 'sha256'],
+
+        self::TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 =>
+        ['cipher_type' => self::CIPHER_TYPE_AEAD, 'crypto_method' => 'AES-256-GCM', 'mac_len' => 0, 'iv_len' => 4, 'key_len' => 32, 'mac' => 'sha384'],
+
+        self::TLS_RSA_WITH_AES_128_GCM_SHA256 =>
+        ['cipher_type' => self::CIPHER_TYPE_AEAD, 'crypto_method' => 'AES-128-GCM', 'mac_len' => 0, 'iv_len' => 4, 'key_len' => 16, 'mac' => 'sha256'],
+
+        self::TLS_RSA_WITH_AES_256_GCM_SHA384 =>
+        ['cipher_type' => self::CIPHER_TYPE_AEAD, 'crypto_method' => 'AES-256-GCM', 'mac_len' => 0, 'iv_len' => 4, 'key_len' => 32, 'mac' => 'sha384'],
+
         self::TLS_RSA_WITH_AES_256_CBC_SHA =>
         ['cipher_type' => self::CIPHER_TYPE_BLOCK, 'crypto_method' => 'AES-256-CBC', 'mac_len' => 20, 'iv_len' => 16, 'key_len' => 32, 'mac' => 'sha1'],
 
@@ -35,9 +51,13 @@ class CipherSuites
         ['cipher_type' => self::CIPHER_TYPE_BLOCK, 'crypto_method' => 'AES-256-CBC', 'mac_len' => 20, 'iv_len' => 16, 'key_len' => 32, 'mac' => 'sha1'],
     ];
 
-    private static $enabledCipherSuites = [
+    public static $enabledCipherSuites = [
+        self::TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+        self::TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
         self::TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
         self::TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+        self::TLS_RSA_WITH_AES_256_GCM_SHA384,
+        self::TLS_RSA_WITH_AES_128_GCM_SHA256,
         self::TLS_RSA_WITH_AES_256_CBC_SHA256,
         self::TLS_RSA_WITH_AES_256_CBC_SHA,
         self::TLS_RSA_WITH_AES_128_CBC_SHA256,
@@ -80,10 +100,26 @@ class CipherSuites
         return self::isECDHE($this->cipherID);
     }
 
+    public static function isGCM($cipherID)
+    {
+        switch($cipherID)
+        {
+            case self::TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:
+            case self::TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:
+            case self::TLS_RSA_WITH_AES_128_GCM_SHA256:
+            case self::TLS_RSA_WITH_AES_256_GCM_SHA384:
+                return true;
+        }
+
+        return false;
+    }
+
     public static function isECDHE($cipherID)
     {
         switch($cipherID)
         {
+            case self::TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:
+            case self::TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:
             case self::TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA:
             case self::TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA:
                 return true;
@@ -140,6 +176,28 @@ class CipherSuites
         return [$cipherID >> 8, $cipherID & 0x00ff];
     }
 
+    /**
+     * 
+     * https://tools.ietf.org/html/rfc5288 Page 2
+     *
+     * The Pseudo Random Function (PRF) algorithms SHALL be as follows:
+     *
+     *  For cipher suites ending with _SHA256, the PRF is the TLS PRF
+     * [RFC5246] with SHA-256 as the hash function.
+     *
+     *  For cipher suites ending with _SHA384, the PRF is the TLS PRF
+     * [RFC5246] with SHA-384 as the hash function.
+     * 
+     * This is also used by Finished message in Handshake
+     */
+    public function getHashAlogV33()
+    {
+        if( self::isGCM($this->cipherID) )
+            return $this->macAlgorithm;
+
+        return 'sha256';
+    }
+
     public function getKeyLen()
     {
         return $this->getProperty('keyLen');
@@ -153,6 +211,11 @@ class CipherSuites
     public function getMACLen()
     {
         return $this->getProperty('macLen');
+    }
+
+    public function getCipherType()
+    {
+        return $this->getProperty('cipherType');
     }
 
     public function blockDecrypt($encPayload, $sharedKey, $IV)
@@ -170,6 +233,16 @@ class CipherSuites
     public function hashHmac($data, $secretMac, $binary = true)
     {
         return hash_hmac($this->macAlgorithm, $data, $secretMac, $binary );
+    }
+
+    public function gcmEncrypt($payload, $sharedKey, $nonce, $aad)
+    {
+        return AEADGcm::encrypt($payload, $sharedKey, $nonce, $aad);
+    }
+
+    public function gcmDecrypt($encData, $sharedKey, $nonce, $aad)
+    {
+        return AEADGcm::decrypt($encData, $sharedKey, $nonce, $aad);
     }
 
     public function debugInfo()

@@ -107,9 +107,9 @@ class ClientKeyExchange extends HandshakeAbstract
                        . Core::_pack('C', $vMinor)
                        . Core::getRandom(46);
     
-            $crtDers = $core->getCrtDer();
-            $publicKey = X509::getPublikKey($crtDers);
-    
+            $crtDers = $core->getCrtDers();
+            $publicKey = X509::getPublicKey($crtDers);
+
             openssl_public_encrypt($preMaster, $encPreMaster, $publicKey);
     
             $data  = Core::_pack('n', strlen($encPreMaster) ) 

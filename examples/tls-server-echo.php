@@ -46,6 +46,18 @@ stream_set_blocking( $server, 0 );
 
 $sockets = [$server];
 
+$index = 1;
+
+$closeSocket = function($clientSocket){
+    global $sockets, $tlsClients;
+
+    list($tls, $index) = $tlsClients[(int)$clientSocket];
+    unset( $tlsClients[(int)$clientSocket] );
+    unset( $sockets[$index] );
+    stream_socket_shutdown( $clientSocket, STREAM_SHUT_WR );
+};
+
+
 while(1)
 {
     $readSockets = array_values($sockets);
@@ -70,9 +82,9 @@ while(1)
                 $tls = TLSContext::createTLS($config);
 
                 // Store it to an array 
-                $tlsClients[(int)$clientSocket] = [$tls, count($sockets)];
+                $tlsClients[(int)$clientSocket] = [$tls, $index];
 
-                $sockets[] = $clientSocket;
+                $sockets[$index++] = $clientSocket;
             }
             else
             {
@@ -87,8 +99,7 @@ while(1)
                 if( 0 >= strlen($data) )
                 {
                     echo "Disconnted\n";
-                    unset( $tlsClients[int($clientSocket)] );
-                    unset( $sockets[$index] );
+                    $closeSocket($clientSocket);
                     break;
                 }
 

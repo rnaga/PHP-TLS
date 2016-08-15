@@ -92,7 +92,7 @@ while(true)
 stream_socket_shutdown( $socket, STREAM_SHUT_WR );
 
 echo "Received content length: " . strlen($response) . "\n";
-
+echo $response;
 
 
 

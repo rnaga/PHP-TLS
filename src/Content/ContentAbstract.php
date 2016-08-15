@@ -6,6 +6,7 @@ use PTLS\Core;
 use PTLS\ContentType;
 use PTLS\Handshake\HandshakeType;
 use PTLS\Exceptions\TLSAlertException;
+use PTLS\Exceptions\TLSException;
 
 abstract class ContentAbstract
 {
@@ -38,7 +39,10 @@ abstract class ContentAbstract
         switch($contentType)
         {
             case ContentType::HANDSHAKE:
+
+                // Count handshake for later to create finished message
                 $core->countHandshakeMessages($payload);
+
                 $this->encodeHandshake($payload);
                 break;
 
@@ -84,7 +88,7 @@ abstract class ContentAbstract
         $core = $this->core;
 
         if( $this->expectedHandshakeType != HandshakeType::FINISHED || $core->isHandshaked )
-            throw new Exception("Invalid message");
+            throw new TLSException("Invalid message");
 
         $changeCipherSpec = new ChangeCipherSpec();
         $changeCipherSpec->encode($data);
@@ -97,7 +101,7 @@ abstract class ContentAbstract
         $core = $this->core;
 
         if( !$core->isHandshaked )
-            throw new Exception("Handshake Imcomplete");
+            throw new TLSException("Handshake Imcomplete");
 
         if( is_null( $this->appData ) )
             $this->appData = new ApplicationData($this->core);

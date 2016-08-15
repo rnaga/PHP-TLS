@@ -87,7 +87,7 @@ class Prf
         $clientIV = substr($keys, $offset, $ivLen);
         $offset += $ivLen;
 
-        $serverIV = substr($keys, 0, $ivLen);
+        $serverIV = substr($keys, $offset, $ivLen);
 
         return [
             'client' => ['MAC' => $clientMAC, 'Key' => $clientKey, 'IV' => $clientIV],
@@ -120,9 +120,12 @@ class Prf
      */
     public function prf32($length, $secret, $label, $seed)
     {
+        $core = $this->core;
+        $cipherSuite = $core->cipherSuite;
+
         $labelAndSeed = $label . $seed;
-        $sha256 = $this->pHash($length, $secret, $labelAndSeed, "sha256");
-        return $sha256;
+        $hash = $this->pHash($length, $secret, $labelAndSeed, $cipherSuite->getHashAlogV33());
+        return $hash;
     }
 
     /**

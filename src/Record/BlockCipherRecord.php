@@ -59,7 +59,6 @@ class BlockCipherRecord extends Record
 
         $cipherSuite = $core->cipherSuite;
        
-        $IV        = $conn->IV;
         $sharedKey = $conn->Key;
         $ivLen     = $cipherSuite->getIVLen(); 
         $macLen    = $cipherSuite->getMACLen(); 
@@ -68,6 +67,8 @@ class BlockCipherRecord extends Record
         $this->encPayload = $this->payload;
         $this->encLength  = $this->length;
 
+        $IV = substr($this->encPayload, 0, $ivLen);
+        
         $data = $cipherSuite->blockDecrypt($this->encPayload, $sharedKey, $IV);
  
         // If the decryption fails, a fatal bad_record_mac alert MUST be generated
@@ -79,9 +80,6 @@ class BlockCipherRecord extends Record
 
         // Re-set the length
         $this->length = strlen($data) - $ivLen - $macLen  - $paddingLength - 1;
-
-        // Re-set IV
-        $IV = substr($data, 0, $ivLen);
 
         // Set Payload
         $this->payload = $payload = substr($data, $ivLen, $this->length);
@@ -114,16 +112,15 @@ class BlockCipherRecord extends Record
 
         $cipherSuite = $core->cipherSuite;
 
-        $IV        = $conn->IV;
         $sharedKey = $conn->Key;
         $ivLen     = $cipherSuite->getIVLen(); 
         $macLen    = $cipherSuite->getMACLen(); 
 
         $MAC = $this->calculateMAC();
 
-        $nextIV = Core::getRandom($ivLen);
+        $IV = Core::getRandom($ivLen);
 
-        $data = $nextIV . $this->payload . $MAC;
+        $data = $this->payload . $MAC;
 
         // Calculate and append padding
         $fpd = function($l, $bz){
@@ -139,7 +136,8 @@ class BlockCipherRecord extends Record
         if( false === $encData )
             throw new TLSAlertException(Alert::create(Alert::BAD_RECORD_MAC), "Cipher block encryption failed");
 
-        $conn->IV = $nextIV;
+        $encData = $IV . $encData;
+
         $this->incrementSeq();
 
         if( $this->contentType == ContentType::HANDSHAKE )

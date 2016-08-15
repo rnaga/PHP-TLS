@@ -76,6 +76,8 @@ class X509
     {
         $pem = X509::crtDerToPem($crtDers[0]);
         $publicKey = openssl_pkey_get_public($pem);
+
+        return $publicKey;
     }
 }
 

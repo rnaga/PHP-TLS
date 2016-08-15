@@ -44,7 +44,8 @@ class Finished extends HandshakeAbstract
         */
         else // 1.2
         {
-            $seedHash = hash('sha256', $handshakeMessages, true);
+            $cipherSuite = $core->cipherSuite;
+            $seedHash = hash($cipherSuite->getHashAlogV33(), $handshakeMessages, true);
         }
 
         $masterSecret = $core->getMasterSecret();

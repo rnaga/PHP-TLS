@@ -58,7 +58,11 @@ class Core
      * TLS Protocol Version
      */
     private $vMajor = null, $vMinor = null;
-    private $vMajorDefault = 3, $vMinorDefault = 2;
+
+    /**
+     *  Set default TLS version as 1.2
+     */
+    private $vMajorDefault = 3, $vMinorDefault = 3;
     private $protocolVersion;
 
     /**
@@ -136,9 +140,10 @@ class Core
             $this->crtDers = $this->config->get('crt_ders');
             $this->content = new ServerContent($this);
         }
-        else
+        else // Client
         {
             $this->content = new ClientContent($this);
+            $this->setVersion(3, $config->get('version', $this->vMinorDefault));
         }
     }
 

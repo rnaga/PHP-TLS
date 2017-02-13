@@ -9,12 +9,24 @@ use PTLS\Exceptions\TLSAlertException;
 
 
 // TLS Config
+/*
+// RSA
 $config = TLSContext::getServerConfig([
     'key_pair_files' => [
        'cert' => ['pem/crt.pem'],
        'key'  => ['pem/key.pem', 'test']
     ]
 ]);
+*/
+
+// ECDSA
+$config = TLSContext::getServerConfig([
+    'key_pair_files' => [
+       'cert' => ['pem/ecdsa_crt.pem'],
+       'key'  => ['pem/ecdsa_key.pem', '']
+    ]
+]);
+
 
 $tlsClients = [];
 

@@ -8,6 +8,7 @@ use PTLS\Content\Alert;
 
 class CipherSuites
 {
+    const TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 = 0xc02b;
     const TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 = 0xC02F;
     const TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 = 0xC030;
     const TLS_RSA_WITH_AES_128_GCM_SHA256    = 0x009C;
@@ -20,6 +21,10 @@ class CipherSuites
     const TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA = 0xC014;    
 
     private static $cipherList = [
+
+        self::TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 =>
+        ['cipher_type' => self::CIPHER_TYPE_AEAD, 'crypto_method' => 'AES-128-GCM', 'mac_len' => 0, 'iv_len' => 4, 'key_len' => 16, 'mac' => 'sha256'],
+
         self::TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 =>
         ['cipher_type' => self::CIPHER_TYPE_AEAD, 'crypto_method' => 'AES-128-GCM', 'mac_len' => 0, 'iv_len' => 4, 'key_len' => 16, 'mac' => 'sha256'],
 
@@ -52,6 +57,7 @@ class CipherSuites
     ];
 
     public static $enabledCipherSuites = [
+        self::TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
         self::TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
         self::TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
         self::TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
@@ -67,6 +73,10 @@ class CipherSuites
     const CIPHER_TYPE_STREAM = 1;
     const CIPHER_TYPE_BLOCK  = 2;
     const CIPHER_TYPE_AEAD   = 3;
+
+    // Authentication algorithm
+    const AU_TYPE_RSA   = 1;
+    const AU_TYPE_ECDSA = 2;
 
     private $macLen;
     private $ivLen;
@@ -104,6 +114,7 @@ class CipherSuites
     {
         switch($cipherID)
         {
+            case self::TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:
             case self::TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:
             case self::TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:
             case self::TLS_RSA_WITH_AES_128_GCM_SHA256:
@@ -118,6 +129,7 @@ class CipherSuites
     {
         switch($cipherID)
         {
+            case self::TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:
             case self::TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:
             case self::TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:
             case self::TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA:
@@ -128,18 +140,41 @@ class CipherSuites
         return false;
     }
 
+    public static function isECDSA($cipherID)
+    {
+        switch($cipherID)
+        {
+            case self::TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:
+                return true;
+        }
+
+        return false;
+    }
+
+    /**
+     *  Called by the server
+     */
     public static function pickCipherID(Core $core, array $arr)
     {
         $extensions = $core->extensions;
 
+        $servAUType = $core->getConfig('is_ecdsa') ? self::AU_TYPE_ECDSA : self::AU_TYPE_RSA;
+       
         foreach( $arr as $val)
         {
             list($cipher1, $cipher2) = $val;
 
             $cipherID = $cipher1 << 8 | $cipher2;
 
+            $auType = self::isECDSA($cipherID) ? self::AU_TYPE_ECDSA : self::AU_TYPE_RSA;
+
+            // Check for Authentication algorithm
+            if( $servAUType !== $auType )
+                continue;
+
             if( in_array($cipherID, self::$enabledCipherSuites ) )
             {
+                // Check for ECDHE
                 if( self::isECDHE($cipherID) && true !== $extensions->call('Curve', 'isEnabled', false) )
                     continue;
                 else 

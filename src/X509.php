@@ -65,12 +65,10 @@ class X509
         return self::crtPemToDer($pem);
     }
 
-    public static function getPrivateKey($file, $passCode = "")
+    public static function getPrivateKey($privateKeyPem, $passCode = "")
     {
-        $privateKey = file_get_contents($file);
-        return openssl_get_privatekey($privateKey, $passCode);
+        return openssl_get_privatekey($privateKeyPem, $passCode);
     }
-
 
     public static function getPublicKey(array $crtDers)
     {

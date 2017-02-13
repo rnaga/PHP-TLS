@@ -3,6 +3,7 @@
 namespace PTLS\Extensions;
 
 use PTLS\Core;
+use PTLS\EcDSA;
 
 /**
  * https://tools.ietf.org/html/rfc5246#section-7.4.1.4.1
@@ -36,19 +37,39 @@ class SignatureAlgorithm extends ExtensionAbstract
     const TYPE_SHA384_RSA = 0x0501;
     const TYPE_SHA256_RSA = 0x0401;
 
+    const TYPE_SHA512_ECDSA = 0x0603;
+    const TYPE_SHA384_ECDSA = 0x0503;
+    const TYPE_SHA256_ECDSA = 0x0403;
+
+    const TYPE_SIGNATURE_RSA   = 1;
+    const TYPE_SIGNATURE_ECDSA = 3;
+
     private static $supportedAlgorithmList = [
         self::TYPE_SHA512_RSA,
         self::TYPE_SHA384_RSA,
         self::TYPE_SHA256_RSA,
+        self::TYPE_SHA512_ECDSA,
+        self::TYPE_SHA384_ECDSA,
+        self::TYPE_SHA256_ECDSA,
     ];
 
     private $core;
     private $algorithm;
 
+    // Used for server
+    private $availSigAlgo;
+
     public function __construct(Core $core)
     {
         $this->core = $core;
         $this->algorithm = null;
+
+        if( $core->isServer )
+        {
+            // Set available signature algorithm
+            $this->availSigAlgo = $core->getConfig('is_ecdsa')
+                            ? self::TYPE_SIGNATURE_ECDSA : self::TYPE_SIGNATURE_RSA;
+        }
     }
 
     public function onEncodeClientHello($type, $data)
@@ -79,7 +100,7 @@ class SignatureAlgorithm extends ExtensionAbstract
 
             $algorithm = $hash << 8 | $sig;
 
-            if( in_array( $algorithm, self::$supportedAlgorithmList ) )
+            if( in_array( $algorithm, self::$supportedAlgorithmList ) && $this->availSigAlgo == $sig )
             {
                 $this->algorithm = $algorithm;
                 break;
@@ -127,6 +148,11 @@ class SignatureAlgorithm extends ExtensionAbstract
     {
         $core = $this->core;
         $privateKey = $core->getConfig('private_key');
+        $isECDSA = $core->getConfig('is_ecdsa');
+
+        if( $isECDSA )
+            $ecdsa = $core->getConfig('ecdsa');
+
         $protoVersion = $core->getProtocolVersion();
 
         /*
@@ -160,10 +186,17 @@ class SignatureAlgorithm extends ExtensionAbstract
          * -  If the negotiated key exchange algorithm is one of (RSA, DHE_RSA,
          *    DH_RSA, RSA_PSK, ECDH_RSA, ECDHE_RSA), behave as if client had
          *    sent the value {sha1,rsa}.
+         *
+         * -  If the negotiated key exchange algorithm is one of (ECDH_ECDSA,
+         *    ECDHE_ECDSA), behave as if the client had sent value {sha1,ecdsa}.
          */
         if( is_null( $this->algorithm ) )
         {
-            openssl_sign($dataSign, $signature, $privateKey, OPENSSL_ALGO_SHA1);
+            if( $isECDSA )
+                $signature = $ecdsa->getSignature($dataSign, 'sha1');
+            else
+                openssl_sign($dataSign, $signature, $privateKey, OPENSSL_ALGO_SHA1);
+
             return $signature;
         }
 
@@ -178,6 +211,16 @@ class SignatureAlgorithm extends ExtensionAbstract
             case self::TYPE_SHA256_RSA:
                 openssl_sign($dataSign, $signature, $privateKey, OPENSSL_ALGO_SHA256);
                 break;
+            case self::TYPE_SHA512_ECDSA:
+                $signature = $ecdsa->getSignature($dataSign, 'sha512');
+                break;
+            case self::TYPE_SHA384_ECDSA:
+                $signature = $ecdsa->getSignature($dataSign, 'sha384');
+                break;
+            case self::TYPE_SHA256_ECDSA:
+                $signature = $ecdsa->getSignature($dataSign, 'sha256');
+                break;
+
         }
 
         return $signature;

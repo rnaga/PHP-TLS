@@ -16,10 +16,14 @@
  * -------------------------------------------------------------------------
  * Commands used to create crt and private key for this example
  * -------------------------------------------------------------------------
- *
+ * [RSA]
  * openssl genrsa -out key.pem 2048
  * openssl req -new -sha256 -key key.pem -out csr.csr
  * openssl req -x509 -sha256 -days 365 -key key.pem -in csr.csr -out crt.pem
+ *
+ * [ECDSA]
+ * openssl ecparam -genkey -name secp384r1 -out ecdsa_key.pem
+ * openssl req -new -x509 -key ecdsa_key.pem -out ecdsa_crt.pem -days 730
  */
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -31,8 +35,8 @@ use PTLS\Exceptions\TLSAlertException;
 // TLS Config
 $config = TLSContext::getServerConfig([
     'key_pair_files' => [
-       'cert' => ['pem/crt.pem'],
-       'key'  => ['pem/key.pem', 'test']
+       'cert' => ['pem/ecdsa_crt.pem'], // RSA => pem/crt.pem 
+       'key'  => ['pem/ecdsa_key.pem', 'test'] // RSA => pem/key.pem
     ]
 ]);
 

@@ -3,6 +3,7 @@
 namespace PTLS;
 
 use PTLS\Exceptions\TLSException;
+use PTLS\EcDSA;
 
 class Config
 {
@@ -44,8 +45,24 @@ class Config
         $pemPriFile      = $keyPairFiles['key'][0];
         $pemPriPassCode  = $keyPairFiles['key'][1];
 
-        $this->config['crt_ders']    = X509::crtFilePemToDer($pemCrtFiles);
-        $this->config['private_key'] = X509::getPrivateKey($pemPriFile, $pemPriPassCode);
+        $pemPrivate      = file_get_contents($pemPriFile);
+
+        $this->config['crt_ders'] = X509::crtFilePemToDer($pemCrtFiles);
+
+        $this->config['private_key_pem'] = $pemPrivate;
+
+        // Check for ECDSA
+        if( EcDSA::isValidPrivateKey($pemPrivate) )
+        {
+            $this->config['is_ecdsa'] = true;
+            // Get a ECDSA instance for Signature Algorithm
+            $this->config['ecdsa'] = new EcDSA($pemPrivate);
+        }
+        else // RSA
+        {
+            $this->config['is_ecdsa'] = false;
+            $this->config['private_key'] = X509::getPrivateKey($pemPrivate, $pemPriPassCode);
+        }
     }
 
     public function get($key, $default = null)

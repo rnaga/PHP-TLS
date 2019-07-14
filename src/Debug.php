@@ -13,7 +13,7 @@ class Debug
 
     public function getProtocolVersion()
     {
-        list($vMajor, $vMinor) = $core->getVersion();
+        list($vMajor, $vMinor) = $this->core->getVersion();
         return "1." . ($vMinor - 1);
     }
 
